@@ -14,7 +14,7 @@ class Storage:
         return self._tweets
 
     def get_by_id(self, tweet_id):
-        for i, tweet in self._tweets:
+        for tweet in self._tweets:
             if tweet['id'] == tweet_id:
                 return tweet
         else:

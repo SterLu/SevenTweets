@@ -1,7 +1,9 @@
 import json
+
 from flask import Flask
 from flask import request
-import storage
+
+from seventweets import storage
 
 Storage = storage.Storage()
 
