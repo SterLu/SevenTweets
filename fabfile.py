@@ -1,18 +1,21 @@
-from fabric.api import run
+from fabric.api import local, settings
 
 
 def initial_setup():
-    run('docker network create radionica')
+    with settings(warn_only=True):
+        local('docker network create radionica')
 
 
 def build():
-    run('git pull origin master')
-    run('docker rmi seventweets')
-    run('docker build -t seventweets ./SevenTweets')
+    local('git pull origin master')
+    with settings(warn_only=True):
+        local('docker stop seventweets-container')
+        local('docker rmi seventweets-image')
+    local('docker build -t seventweets-image .')
 
 
 def start():
-    run('docker run --rm -d --net radionica -p 5000:5000 seventweets')
+    local('docker run --rm -d --net radionica -p 5000:5000 --name seventweets-container seventweets-image')
 
 
 def deployment():
@@ -23,3 +26,12 @@ def deployment():
 def full_deployment():
     initial_setup()
     deployment()
+
+
+def stop():
+    local('docker stop seventweets-container')
+
+
+def clear():
+    local('docker stop seventweets-container')
+    local('docker rmi seventweets-image')
