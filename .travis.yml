@@ -2,3 +2,4 @@ language: python
 python: "3.6"
 install: pip install -r requirements.txt
 script: python -m pytest tests
+after_success: fab -H from.sedamcvrkuta.com deployment -u root

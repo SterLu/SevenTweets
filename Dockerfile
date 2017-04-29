@@ -1,9 +1,9 @@
 FROM python:3
 
-
-RUN git clone https://github.com/SterLu/SevenTweets.git /usr/src/app
-
+RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
+
+COPY . /usr/src/app
 
 RUN pip install --no-cache-dir -r requirements.txt
 
