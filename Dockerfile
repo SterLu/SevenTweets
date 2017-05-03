@@ -7,4 +7,6 @@ COPY . /usr/src/app
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "app.py"]
+ENV GUNICORN_CMD_ARGS="--bind=:8000 --workers=4"
+
+CMD ["gunicorn", "app:app"]
