@@ -15,7 +15,7 @@ def build():
 
 
 def start():
-    local('docker run --rm -d --net radionica -p 5000:5000 --name seventweets-container seventweets-image')
+    local('docker run --rm -d --net radionica -p 8000:8000 --name seventweets-container seventweets-image')
 
 
 def deployment():
