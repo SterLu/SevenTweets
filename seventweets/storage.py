@@ -30,6 +30,7 @@ def row_to_tweet(row):
         "tweet": row[1]
     }
 
+
 class Storage:
     @uses_db
     def __init__(self, cursor):
