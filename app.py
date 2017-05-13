@@ -4,6 +4,7 @@ from flask import Flask
 from flask import request
 
 from seventweets import storage
+from seventweets.exceptions import error_handled, NotFound, BadRequest
 
 Storage = storage.Storage()
 
@@ -16,38 +17,41 @@ def all_tweets():
 
 
 @app.route("/tweets/<int:tweet_id>", methods=["GET"])
+@error_handled
 def single_tweet(tweet_id):
     tweet = Storage.get_by_id(tweet_id)
     if tweet:
         return json.dumps(tweet)
     else:
-        return "Tweet not found", 404
+        raise NotFound("Tweet not found")
 
 
 @app.route("/tweets/", methods=["POST"])
+@error_handled
 def save_tweet():
     if not request.data:
-        return "Data not sent", 400
+        raise BadRequest("Data not sent")
     request_data = json.loads(request.data)
     if request_data['tweet']:
         Storage.save_tweet(request_data["tweet"])
         return "Tweet saved"
     else:
-        return "Missing tweet content", 400
+        raise BadRequest("Missing tweet content")
 
 
 @app.route("/tweets/", methods=["DELETE"])
+@error_handled
 def delete_tweet():
     if not request.data:
-        return "Data not sent", 400
+        raise BadRequest("Data not sent")
     request_data = json.loads(request.data)
     if request_data['id']:
         if Storage.delete_tweet((int)(request_data["id"])):
             return "Tweet deleted", 204
         else:
-            return "Tweet not found", 400
+            raise NotFound("Tweet not found")
     else:
-        return "Missing tweet content", 400
+        raise BadRequest("Missing tweet content")
 
 
 if __name__ == "__main__":
