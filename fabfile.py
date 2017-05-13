@@ -1,10 +1,11 @@
 from fabric.api import local, settings
 
 
-def initial_setup():
+def initial_setup(db_user, db_pw):
     with settings(warn_only=True):
         local('docker network create radionica')
-        start_storage()
+        local('docker volume create radionica-postgres-data')
+        start_storage(db_user, db_pw)
 
 
 def build():
@@ -15,18 +16,20 @@ def build():
     local('docker build -t seventweets-image .')
 
 
-def start():
-    local('docker run --rm -d --net radionica -p 8000:8000 --name seventweets-container seventweets-image')
+def start(db_user, db_pw):
+    local('docker run --rm -d --name seventweets-container --net radionica -p 8000:8000 \
+           -e POSTGRES_USER={db_user} -e POSTGRES_PASS={db_pw} seventweets-image'
+          .format(db_user=db_user, db_pw=db_pw))
 
 
-def deploy():
+def deploy(db_user, db_pw):
     build()
-    start()
+    start(db_user, db_pw)
 
 
-def full_deploy():
-    initial_setup()
-    deploy()
+def full_deploy(db_user, db_pw):
+    initial_setup(db_user, db_pw)
+    deploy(db_user, db_pw)
 
 
 def stop():
@@ -38,10 +41,13 @@ def clear():
     local('docker rmi seventweets-image')
 
 
-def start_storage():
-    local('docker run -d --name storage-container --net radionica --restart unless-stopped \
-    -e POSTGRES_USER=radionica -e POSTGRES_PASSWORD=P4ss \
-    -v radionica-postgres-data:/var/lib/postgresql/data -p 127.0.0.1:5432:5432 postgres:9.6.2')
+def start_storage(db_user, db_pw):
+    with settings(warn_only=True):
+        local('docker stop storage-container')
+    local('docker run --rm -d --name storage-container --net radionica -p 127.0.0.1:5432:5432 \
+           -e POSTGRES_USER={db_user} -e POSTGRES_PASSWORD={db_pw} \
+           -v radionica-postgres-data:/var/lib/postgresql/data postgres:9.6.2'
+          .format(db_user=db_user, db_pw=db_pw))
 
 
 def update():
