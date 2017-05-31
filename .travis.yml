@@ -1,11 +1,11 @@
 language: python
 python: "3.6"
 env:
-  - POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_USER=postgres POSTGRES_PASS= POSTGRES_NAME=testdb
+  - POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_USER=postgres POSTGRES_PASS=
 services:
   - postgresql
 before_script:
-  - psql -c 'create database testdb;' -U postgres
+  - psql -c 'create database postgres;' -U postgres
 install:
   - pip install -r requirements.txt
 script:
