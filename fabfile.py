@@ -47,7 +47,12 @@ def start(db_user, db_pw):
 
 
 def bootstrap_storage():
-    local('docker exec -it seventweets-container python seventweets/storage.py')
+    local('docker exec -it seventweets-container python -m seventweets storage')
+
+
+def add_api_key(key):
+    local('docker exec -it seventweets-container python -m seventweets storage {key}'
+          .format(key=key))
 
 
 def stop():

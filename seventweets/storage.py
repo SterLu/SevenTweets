@@ -36,9 +36,12 @@ class Storage:
         pass
 
     @uses_db
-    def bootstrap(self, cursor, key):
+    def bootstrap(self, cursor):
         cursor.execute("CREATE TABLE IF NOT EXISTS tweets (id SERIAL, text TEXT)")
         cursor.execute("CREATE TABLE IF NOT EXISTS api_keys (id SERIAL, key TEXT)")
+
+    @uses_db
+    def add_api_key(self, cursor, key):
         cursor.execute("INSERT INTO api_keys (key) VALUES (%s)", (key, ))
 
     @uses_db
