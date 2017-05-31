@@ -13,4 +13,4 @@ ENV POSTGRES_HOST="storage-container"
 ENV POSTGRES_PORT="5432"
 
 
-CMD ["gunicorn", "seventweets.app"]
+CMD ["gunicorn", "seventweets.app:app"]
