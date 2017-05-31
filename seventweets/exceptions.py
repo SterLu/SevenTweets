@@ -22,7 +22,7 @@ def error_handled(f):
     @functools.wraps(f)
     def inner_f(*args, **kwargs):
         try:
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
         except HttpException as e:
             return "Error: " + str(e), e.code
     return inner_f
