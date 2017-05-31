@@ -48,6 +48,7 @@ def start_storage(db_user, db_pw):
            -e POSTGRES_USER={db_user} -e POSTGRES_PASSWORD={db_pw} \
            -v radionica-postgres-data:/var/lib/postgresql/data postgres:9.6.2'
           .format(db_user=db_user, db_pw=db_pw))
+    local('python seventweets/storage.py')
 
 
 def update():

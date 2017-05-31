@@ -10,8 +10,7 @@ def uses_db(f):
         db_user = os.environ['POSTGRES_USER'] if 'POSTGRES_USER' in os.environ else 'radionica'
         db_port = int(os.environ['POSTGRES_PORT']) if 'POSTGRES_PORT' in os.environ else 5432
         db_pass = os.environ['POSTGRES_PASS'] if 'POSTGRES_PASS' in os.environ else 'P4ss'
-        db_name = os.environ['POSTGRES_NAME'] if 'POSTGRES_NAME' in os.environ else 'radionica'
-        conn = pg8000.connect(user=db_user, password=db_pass, host=db_host, database=db_name, port=db_port)
+        conn = pg8000.connect(user=db_user, password=db_pass, host=db_host, database=db_user, port=db_port)
         cursor = conn.cursor()
 
         returns = f(cls, cursor, *args, **kwargs)
@@ -63,3 +62,8 @@ class Storage:
     @uses_db
     def delete_tweet(self, cursor, tweet_id):
         cursor.execute("DELETE FROM tweets WHERE id=%s", (tweet_id,))
+
+
+if __name__ == "__main__":
+    Storage = Storage()
+    Storage.bootstrap()
