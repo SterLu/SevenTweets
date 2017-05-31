@@ -36,13 +36,10 @@ class Storage:
         pass
 
     @uses_db
-    def bootstrap(self, cursor):
-        cursor.execute("CREATE TABLE tweets (id SERIAL, text TEXT)")
-        cursor.execute("INSERT INTO tweets (text) VALUES (%s), (%s), (%s)", (
-            "Test tweet 1",
-            "Test tweet 2",
-            "Test tweet 3"
-        ))
+    def bootstrap(self, cursor, key):
+        cursor.execute("CREATE TABLE IF NOT EXISTS tweets (id SERIAL, text TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS api_keys (id SERIAL, key TEXT)")
+        cursor.execute("INSERT INTO api_keys (key) VALUES (%s)", (key, ))
 
     @uses_db
     def get_all(self, cursor):
@@ -62,8 +59,3 @@ class Storage:
     @uses_db
     def delete_tweet(self, cursor, tweet_id):
         cursor.execute("DELETE FROM tweets WHERE id=%s", (tweet_id,))
-
-
-if __name__ == "__main__":
-    Storage = Storage()
-    Storage.bootstrap()
