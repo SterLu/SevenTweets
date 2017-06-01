@@ -24,10 +24,18 @@ def uses_db(f):
 def row_to_tweet(row):
     if not row:
         return False
-    return {
-        "id": row[0],
-        "tweet": row[1]
-    }
+    if row[2] == 'regular':
+        return {
+            "id": row[0],
+            "tweet": row[1],
+            "created": str(row[3])[:16]
+        }
+    else:
+        return {
+            "id": row[0],
+            "tweet": "Retweet: " + row[1],
+            "created": str(row[3])[:16]
+        }
 
 
 class Storage:
@@ -37,7 +45,8 @@ class Storage:
 
     @uses_db
     def bootstrap(self, cursor):
-        cursor.execute("CREATE TABLE IF NOT EXISTS tweets (id SERIAL, text TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS tweets (id SERIAL, text TEXT, tweet_type TEXT, \
+                                      created TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
         cursor.execute("CREATE TABLE IF NOT EXISTS api_keys (id SERIAL, key TEXT)")
 
     @uses_db
@@ -46,7 +55,7 @@ class Storage:
 
     @uses_db
     def get_all(self, cursor):
-        cursor.execute("SELECT * FROM tweets")
+        cursor.execute("SELECT * FROM tweets WHERE tweet_type='regular'")
         return [row_to_tweet(row) for row in cursor.fetchall()]
 
     @uses_db
@@ -56,7 +65,8 @@ class Storage:
 
     @uses_db
     def save_tweet(self, cursor, tweet_text):
-        cursor.execute("INSERT INTO tweets (text) VALUES (%s) RETURNING id, text", (tweet_text,))
+        cursor.execute("INSERT INTO tweets (text, tweet_type) VALUES (%s, 'regular') \
+                        RETURNING id, text, tweet_type, created", (tweet_text,))
         return row_to_tweet(cursor.fetchone())
 
     @uses_db
@@ -65,9 +75,15 @@ class Storage:
 
     @uses_db
     def search(self, cursor, query):
-        cursor.execute("SELECT * FROM tweets WHERE text LIKE '%%{query}%%'".format(query=query))
+        cursor.execute("SELECT * FROM tweets WHERE text LIKE '%%{query}%%' \
+                        AND tweet_type='regular' ".format(query=query))
         # TODO: Possible SQL injection vulnerability
         return [row_to_tweet(row) for row in cursor.fetchall()]
+
+    @uses_db
+    def get_all_keys(self, cursor):
+        cursor.execute("SELECT * FROM api_keys")
+        return [row[1] for row in cursor.fetchall()]
 
 
 def row_to_node(row, show_type=False):

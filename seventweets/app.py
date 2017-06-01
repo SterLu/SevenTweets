@@ -1,15 +1,30 @@
 import json
+import functools
 
 from flask import Flask
 from flask import request
 
 from seventweets import storage
-from seventweets.exceptions import error_handled, NotFound, BadRequest
+from seventweets.exceptions import error_handled, NotFound, BadRequest, Unauthorized
 
 Storage = storage.Storage()
 Nodes = storage.Nodes()
 
 app = Flask(__name__)
+
+
+def protected_endpoint(f):
+    @functools.wraps(f)
+    def inner_f(*args, **kwargs):
+        request_data = json.loads(request.data)
+        if 'api_key' in request_data:
+            api_keys = Storage.get_all_keys()
+            print(api_keys)
+            print(request_data['api_key'])
+            if request_data['api_key'] in api_keys:
+                return f(*args, **kwargs)
+        raise Unauthorized("Unauthorized")
+    return inner_f
 
 
 @app.route("/tweets/", methods=["GET"])
@@ -29,11 +44,12 @@ def single_tweet(tweet_id):
 
 @app.route("/tweets/", methods=["POST"])
 @error_handled
+@protected_endpoint
 def save_tweet():
     if not request.data:
         raise BadRequest("Data not sent")
     request_data = json.loads(request.data)
-    if request_data['tweet']:
+    if 'tweet' in request_data:
         Storage.save_tweet(request_data["tweet"])
         return "Tweet saved"
     else:
@@ -42,11 +58,12 @@ def save_tweet():
 
 @app.route("/tweets/", methods=["DELETE"])
 @error_handled
+@protected_endpoint
 def delete_tweet():
     if not request.data:
         raise BadRequest("Data not sent")
     request_data = json.loads(request.data)
-    if request_data['id']:
+    if 'id' in request_data:
         if Storage.delete_tweet((int)(request_data["id"])):
             return "Tweet deleted", 204
         else:
@@ -58,6 +75,9 @@ def delete_tweet():
 @app.route("/search/<query>", methods=["GET"])
 @error_handled
 def search(query):
+    # TODO: switch to GET params
+    # TODO: add created_from, created_to and all
+    # TODO: add external search
     return json.dumps(Storage.search(query))
 
 
