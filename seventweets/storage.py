@@ -86,15 +86,15 @@ class Storage:
         return [row[1] for row in cursor.fetchall()]
 
 
-def row_to_node(row, show_type=False):
+def row_to_node(row, show_status=False):
     if not row:
         return False
     returns = {
         "name": row[0],
         "address": row[1]
     }
-    if show_type:
-        returns['type'] = row[2]
+    if show_status:
+        returns['status'] = row[2]
     return returns
 
 
@@ -102,17 +102,8 @@ class Nodes:
     @uses_db
     def __init__(self, cursor):
         cursor.execute("DROP TABLE IF EXISTS nodes")
-        cursor.execute("CREATE TABLE IF NOT EXISTS nodes (name TEXT, address TEXT, node_type TEXT)")
-
-    @uses_db
-    def set_self(self, cursor, name, address):
-        cursor.execute("DELETE FROM nodes WHERE node_type ='self'")
-        cursor.execute("INSERT INTO nodes (name, address, node_type) VALUES (%s, %s, 'self')", (name, address))
-
-    @uses_db
-    def get_self(self, cursor):
-        cursor.execute("SELECT * FROM nodes WHERE node_type='self'")
-        return row_to_node(cursor.fetchone())
+        cursor.execute("CREATE TABLE IF NOT EXISTS nodes \
+                      (name TEXT, address TEXT, status TEXT)")
 
     @uses_db
     def get_all(self, cursor):
@@ -120,14 +111,35 @@ class Nodes:
         return [row_to_node(row, True) for row in cursor.fetchall()]
 
     @uses_db
-    def register_node(self, cursor, name, address):
-        # TODO: Check if node with given name or address exists, update if exists, else insert
-        cursor.execute("INSERT INTO nodes (name, address, node_type) VALUES (%s, %s, 'external')", (name, address))
+    def get_new(self, cursor):
+        cursor.execute("SELECT * FROM nodes WHERE status='new'")
+        return row_to_node(cursor.fetchone())
 
     @uses_db
-    def get_all_external(self, cursor):
-        cursor.execute("SELECT * FROM nodes WHERE node_type='external'")
-        return [row_to_node(row) for row in cursor.fetchall()]
+    def register_node(self, cursor, name, address):
+        cursor.execute("SELECT * FROM nodes WHERE name=%s AND address=%s", (name, address))
+        if len(cursor.fetchall()):
+            print("Node already registered")
+            return
+
+        cursor.execute("SELECT * FROM nodes WHERE name=%s", (name, ))
+        if len(cursor.fetchall()):
+            print("Node with same name already registered")
+            cursor.execute("UPDATE nodes SET status='new', address=%s WHERE name=%s", (address, name))
+            return
+
+        cursor.execute("SELECT * FROM nodes WHERE address=%s", (address, ))
+        if len(cursor.fetchall()):
+            print("Node with same address already registered")
+            cursor.execute("UPDATE nodes SET status='new', name=%s WHERE address=%s", (name, address))
+            return
+
+        cursor.execute("INSERT INTO nodes (name, address, status) VALUES (%s, %s, 'new')", (name, address))
+        print("Node registered")
+
+    @uses_db
+    def mark_as_checked(self, cursor, name, address):
+        cursor.execute("UPDATE nodes SET status='checked' WHERE name=%s AND address=%s", (name, address))
 
     @uses_db
     def delete_node(self, cursor, name):

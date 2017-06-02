@@ -1,5 +1,7 @@
 import json
 import functools
+import os
+import requests
 
 from flask import Flask
 from flask import request
@@ -9,6 +11,9 @@ from seventweets.exceptions import error_handled, NotFound, BadRequest, Unauthor
 
 Storage = storage.Storage()
 Nodes = storage.Nodes()
+
+self_node_name = os.environ['NODE_NAME'] if 'NODE_NAME' in os.environ else 'dev'
+self_node_address = os.environ['NODE_ADDRESS'] if 'NODE_ADDRESS' in os.environ else 'sbg.dev'
 
 app = Flask(__name__)
 
@@ -25,6 +30,30 @@ def protected_endpoint(f):
                 return f(*args, **kwargs)
         raise Unauthorized("Unauthorized")
     return inner_f
+
+
+def scan_network():
+    new_node = Nodes.get_new()
+    while new_node:
+        if new_node['name'] != self_node_name:
+            print("Fetching info from node " + new_node['name'])
+            try:
+                res = requests.post("http://" + new_node['address'] + '/register/', json={
+                    "name": self_node_name,
+                    "address": self_node_address
+                })
+                returned_nodes = json.loads(res.text)
+                print("Discovered new nodes: ")
+                print(returned_nodes)
+                for node in returned_nodes:
+                    if node['address'] != self_node_address and node['name'] != self_node_name:
+                        print("Registering discovered node: ")
+                        print(node)
+                        Nodes.register_node(node['name'], node['address'])
+            except Exception:
+                print(Exception)
+        Nodes.mark_as_checked(new_node['name'], new_node['address'])
+        new_node = Nodes.get_new()
 
 
 @app.route("/tweets/", methods=["GET"])
@@ -88,8 +117,9 @@ def join_network():
         raise BadRequest("Data not sent")
     request_data = json.loads(request.data)
     if request_data['name'] and request_data['address']:
-        print("Initializing current node as '" + request_data['name'] + "' at " + request_data['address'])
-        Nodes.set_self(request_data['name'], request_data['address'])
+        print("Joining network through node '" + request_data['name'] + "' at " + request_data['address'])
+        Nodes.register_node(request_data['name'], request_data['address'])
+        scan_network()
         return "Joined"
     else:
         raise BadRequest("Missing parameters")
@@ -108,13 +138,11 @@ def register_node():
         raise BadRequest("Data not sent")
     request_data = json.loads(request.data)
     if request_data['name'] and request_data['address']:
-        self_data = Nodes.get_self()
-        if self_data:
+        if request_data['address'] != self_node_address and request_data['name'] != self_node_name:
             print("New node '" + request_data['name'] + "' at " + request_data['address'])
             Nodes.register_node(request_data['name'], request_data['address'])
-            return json.dumps(Nodes.get_all_external())
-        else:
-            raise NotFound("Network not joined")
+            scan_network()
+        return json.dumps(Nodes.get_all())
     else:
         raise BadRequest("Missing parameters")
 
@@ -122,12 +150,8 @@ def register_node():
 @app.route("/register/<node_name>", methods=["DELETE"])
 @error_handled
 def delete_node(node_name):
-    self_data = Nodes.get_self()
-    if self_data:
-        Nodes.delete_node(node_name)
-        return "", 204
-    else:
-        raise NotFound("Network not joined")
+    Nodes.delete_node(node_name)
+    return "", 204
 
 
 if __name__ == "__main__":
