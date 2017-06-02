@@ -131,7 +131,7 @@ def join_network():
 @app.route("/network_status/", methods=["GET"])
 @error_handled
 def network_status():
-    return json.dumps(Nodes.get_all())
+    return json.dumps(Nodes.get_all(True))
 
 
 @app.route("/register/", methods=["POST"])

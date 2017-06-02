@@ -106,9 +106,9 @@ class Nodes:
                       (name TEXT, address TEXT, status TEXT)")
 
     @uses_db
-    def get_all(self, cursor):
+    def get_all(self, cursor, show_status=False):
         cursor.execute("SELECT * FROM nodes")
-        return [row_to_node(row, True) for row in cursor.fetchall()]
+        return [row_to_node(row, show_status) for row in cursor.fetchall()]
 
     @uses_db
     def get_new(self, cursor):
