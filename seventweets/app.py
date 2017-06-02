@@ -38,7 +38,10 @@ def scan_network():
         if new_node['name'] != self_node_name:
             print("Fetching info from node " + new_node['name'])
             try:
-                res = requests.post("http://" + new_node['address'] + '/register/', json={
+                address = new_node['address'] + '/register/'
+                if address[:4] != "http":
+                    address = "http://" + address
+                res = requests.post(address, json={
                     "name": self_node_name,
                     "address": self_node_address
                 })
@@ -50,8 +53,8 @@ def scan_network():
                         print("Registering discovered node: ")
                         print(node)
                         Nodes.register_node(node['name'], node['address'])
-            except Exception:
-                print(Exception)
+            except requests.exceptions.RequestException as e:
+                print(e)
         Nodes.mark_as_checked(new_node['name'], new_node['address'])
         new_node = Nodes.get_new()
 
