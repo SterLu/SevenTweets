@@ -96,7 +96,8 @@ class Storage:
                     res = requests.get(address)
                     returned_tweets = json.loads(res.text)
                     print(returned_tweets)
-                    results.append(returned_tweets)
+                    for result in returned_tweets:
+                        results.append(result)
                 except requests.exceptions.RequestException as e:
                     print(e)
                 except json.decoder.JSONDecodeError as e:

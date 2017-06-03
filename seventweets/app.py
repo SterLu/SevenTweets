@@ -5,6 +5,7 @@ import requests
 
 from flask import Flask
 from flask import request
+from flask import jsonify
 
 from seventweets import storage
 from seventweets import nodes
@@ -66,7 +67,7 @@ def scan_network():
 
 @app.route("/tweets/", methods=["GET"])
 def all_tweets():
-    return json.dumps(Storage.get_all())
+    return jsonify(Storage.get_all())
 
 
 @app.route("/tweets/<int:tweet_id>", methods=["GET"])
@@ -74,7 +75,7 @@ def all_tweets():
 def single_tweet(tweet_id):
     tweet = Storage.get_by_id(tweet_id)
     if tweet:
-        return json.dumps(tweet)
+        return jsonify(tweet)
     else:
         raise NotFound("Tweet not found")
 
@@ -112,13 +113,11 @@ def delete_tweet():
 @app.route("/search/", methods=["GET"])
 @error_handled
 def search():
-    # TODO: switch to GET params
-    # TODO: add created_from, created_to and all
-    # TODO: add external search
+    # TODO: add created_from, created_to
     if request.args.get('content'):
         if request.args.get('all') and request.args.get('all') == 'true':
-            return json.dumps(Storage.search(request.args.get('content'), True))
-        return json.dumps(Storage.search(request.args.get('content')))
+            return jsonify(Storage.search(request.args.get('content'), True))
+        return jsonify(Storage.search(request.args.get('content')))
     raise BadRequest("Missing params")
 
 
@@ -140,7 +139,7 @@ def join_network():
 @app.route("/network_status/", methods=["GET"])
 @error_handled
 def network_status():
-    return json.dumps(Nodes.get_all(True))
+    return jsonify(Nodes.get_all(True))
 
 
 @app.route("/register/", methods=["POST"])
@@ -149,12 +148,12 @@ def register_node():
     if not request.data:
         raise BadRequest("Data not sent")
     request_data = json.loads(request.data)
-    if request_data['name'] and request_data['url']:
+    if 'name' in request_data and 'url' in request_data:
         if request_data['url'] != self_node_address and request_data['name'] != self_node_name:
             print("New node '" + request_data['name'] + "' at " + request_data['url'])
             Nodes.register_node(request_data['name'], request_data['url'])
             scan_network()
-        return json.dumps(Nodes.get_all())
+        return jsonify(Nodes.get_all())
     else:
         raise BadRequest("Missing parameters")
 
