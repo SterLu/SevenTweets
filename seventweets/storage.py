@@ -89,7 +89,7 @@ class Storage:
             for node in nodes:
                 print(node)
                 try:
-                    address = node['address'] + '/search/?content=' + query
+                    address = node['url'] + '/search/?content=' + query
                     if address[:4] != "http":
                         address = "http://" + address
                     print(address)

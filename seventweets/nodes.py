@@ -26,7 +26,7 @@ def row_to_node(row, show_status=False):
         return False
     returns = {
         "name": row[0],
-        "address": row[1]
+        "url": row[1]
     }
     if show_status:
         returns['status'] = row[2]

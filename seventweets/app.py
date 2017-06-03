@@ -37,28 +37,28 @@ def protected_endpoint(f):
 def scan_network():
     new_node = Nodes.get_new()
     while new_node:
-        if new_node['name'] != self_node_name and new_node['address'] != self_node_address:
+        if new_node['name'] != self_node_name and new_node['url'] != self_node_address:
             print("Fetching info from node " + new_node['name'])
             try:
-                address = new_node['address'] + '/register/'
+                address = new_node['url'] + '/register/'
                 if address[:4] != "http":
                     address = "http://" + address
 
                 res = requests.post(address, json={
                     "name": self_node_name,
-                    "address": self_node_address
+                    "url": self_node_address
                 })
                 returned_nodes = json.loads(res.text)
                 print("Discovered new nodes: ")
                 print(returned_nodes)
                 for node in returned_nodes:
-                    if node['address'] != self_node_address and node['name'] != self_node_name:
+                    if node['url'] != self_node_address and node['name'] != self_node_name:
                         print("Registering discovered node: ")
                         print(node)
-                        Nodes.register_node(node['name'], node['address'])
+                        Nodes.register_node(node['name'], node['url'])
             except requests.exceptions.RequestException as e:
                 print(e)
-        Nodes.mark_as_checked(new_node['name'], new_node['address'])
+        Nodes.mark_as_checked(new_node['name'], new_node['url'])
         new_node = Nodes.get_new()
 
 
@@ -126,9 +126,9 @@ def join_network():
     if not request.data:
         raise BadRequest("Data not sent")
     request_data = json.loads(request.data)
-    if request_data['name'] and request_data['address']:
-        print("Joining network through node '" + request_data['name'] + "' at " + request_data['address'])
-        Nodes.register_node(request_data['name'], request_data['address'])
+    if request_data['name'] and request_data['url']:
+        print("Joining network through node '" + request_data['name'] + "' at " + request_data['url'])
+        Nodes.register_node(request_data['name'], request_data['url'])
         scan_network()
         return "Joined"
     else:
@@ -147,10 +147,10 @@ def register_node():
     if not request.data:
         raise BadRequest("Data not sent")
     request_data = json.loads(request.data)
-    if request_data['name'] and request_data['address']:
-        if request_data['address'] != self_node_address and request_data['name'] != self_node_name:
-            print("New node '" + request_data['name'] + "' at " + request_data['address'])
-            Nodes.register_node(request_data['name'], request_data['address'])
+    if request_data['name'] and request_data['url']:
+        if request_data['url'] != self_node_address and request_data['name'] != self_node_name:
+            print("New node '" + request_data['name'] + "' at " + request_data['url'])
+            Nodes.register_node(request_data['name'], request_data['url'])
             scan_network()
         return json.dumps(Nodes.get_all())
     else:
