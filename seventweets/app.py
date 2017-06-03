@@ -58,6 +58,8 @@ def scan_network():
                         Nodes.register_node(node['name'], node['url'])
             except requests.exceptions.RequestException as e:
                 print(e)
+            except json.decoder.JSONDecodeError as e:
+                print(e)
         Nodes.mark_as_checked(new_node['name'], new_node['url'])
         new_node = Nodes.get_new()
 
