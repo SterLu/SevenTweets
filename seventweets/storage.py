@@ -1,6 +1,8 @@
 import os
 import functools
 import pg8000
+import requests
+import json
 
 
 def uses_db(f):
@@ -74,73 +76,34 @@ class Storage:
         cursor.execute("DELETE FROM tweets WHERE id=%s", (tweet_id,))
 
     @uses_db
-    def search(self, cursor, query):
+    def search(self, cursor, query, search_external=False):
         cursor.execute("SELECT * FROM tweets WHERE text LIKE '%%{query}%%' \
                         AND tweet_type='regular' ".format(query=query))
         # TODO: Possible SQL injection vulnerability
-        return [row_to_tweet(row) for row in cursor.fetchall()]
+        results = [row_to_tweet(row) for row in cursor.fetchall()]
+        if search_external:
+            from seventweets import nodes
+            Nodes = nodes.Nodes()
+            nodes = Nodes.get_all()
+            print(nodes)
+            for node in nodes:
+                print(node)
+                try:
+                    address = node['address'] + '/search/?content=' + query
+                    if address[:4] != "http":
+                        address = "http://" + address
+                    print(address)
+                    res = requests.get(address)
+                    returned_tweets = json.loads(res.text)
+                    print(returned_tweets)
+                    results.append(returned_tweets)
+                except requests.exceptions.RequestException as e:
+                    print(e)
+                except json.decoder.JSONDecodeError as e:
+                    print(e)
+        return results
 
     @uses_db
     def get_all_keys(self, cursor):
         cursor.execute("SELECT * FROM api_keys")
         return [row[1] for row in cursor.fetchall()]
-
-
-def row_to_node(row, show_status=False):
-    if not row:
-        return False
-    returns = {
-        "name": row[0],
-        "address": row[1]
-    }
-    if show_status:
-        returns['status'] = row[2]
-    return returns
-
-
-class Nodes:
-    @uses_db
-    def __init__(self, cursor):
-        cursor.execute("DROP TABLE IF EXISTS nodes")
-        cursor.execute("CREATE TABLE IF NOT EXISTS nodes \
-                      (name TEXT, address TEXT, status TEXT)")
-
-    @uses_db
-    def get_all(self, cursor, show_status=False):
-        cursor.execute("SELECT * FROM nodes")
-        return [row_to_node(row, show_status) for row in cursor.fetchall()]
-
-    @uses_db
-    def get_new(self, cursor):
-        cursor.execute("SELECT * FROM nodes WHERE status='new'")
-        return row_to_node(cursor.fetchone())
-
-    @uses_db
-    def register_node(self, cursor, name, address):
-        cursor.execute("SELECT * FROM nodes WHERE name=%s AND address=%s", (name, address))
-        if len(cursor.fetchall()):
-            print("Node already registered")
-            return
-
-        cursor.execute("SELECT * FROM nodes WHERE name=%s", (name, ))
-        if len(cursor.fetchall()):
-            print("Node with same name already registered")
-            cursor.execute("UPDATE nodes SET status='new', address=%s WHERE name=%s", (address, name))
-            return
-
-        cursor.execute("SELECT * FROM nodes WHERE address=%s", (address, ))
-        if len(cursor.fetchall()):
-            print("Node with same address already registered")
-            cursor.execute("UPDATE nodes SET status='new', name=%s WHERE address=%s", (name, address))
-            return
-
-        cursor.execute("INSERT INTO nodes (name, address, status) VALUES (%s, %s, 'new')", (name, address))
-        print("Node registered")
-
-    @uses_db
-    def mark_as_checked(self, cursor, name, address):
-        cursor.execute("UPDATE nodes SET status='checked' WHERE name=%s AND address=%s", (name, address))
-
-    @uses_db
-    def delete_node(self, cursor, name):
-        cursor.execute("DELETE FROM nodes WHERE name=%s AND node_type='external'", (name, ))

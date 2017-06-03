@@ -7,13 +7,15 @@ from flask import Flask
 from flask import request
 
 from seventweets import storage
+from seventweets import nodes
 from seventweets.exceptions import error_handled, NotFound, BadRequest, Unauthorized
 
 Storage = storage.Storage()
-Nodes = storage.Nodes()
+Nodes = nodes.Nodes()
+Nodes.bootstrap()
 
 self_node_name = os.environ['NODE_NAME'] if 'NODE_NAME' in os.environ else 'dev'
-self_node_address = os.environ['NODE_ADDRESS'] if 'NODE_ADDRESS' in os.environ else 'sbg.dev'
+self_node_address = os.environ['NODE_ADDRESS'] if 'NODE_ADDRESS' in os.environ else 'localhost:5000'
 
 app = Flask(__name__)
 
@@ -35,12 +37,13 @@ def protected_endpoint(f):
 def scan_network():
     new_node = Nodes.get_new()
     while new_node:
-        if new_node['name'] != self_node_name:
+        if new_node['name'] != self_node_name and new_node['address'] != self_node_address:
             print("Fetching info from node " + new_node['name'])
             try:
                 address = new_node['address'] + '/register/'
                 if address[:4] != "http":
                     address = "http://" + address
+
                 res = requests.post(address, json={
                     "name": self_node_name,
                     "address": self_node_address
@@ -104,13 +107,17 @@ def delete_tweet():
         raise BadRequest("Missing tweet content")
 
 
-@app.route("/search/<query>", methods=["GET"])
+@app.route("/search/", methods=["GET"])
 @error_handled
-def search(query):
+def search():
     # TODO: switch to GET params
     # TODO: add created_from, created_to and all
     # TODO: add external search
-    return json.dumps(Storage.search(query))
+    if request.args.get('content'):
+        if request.args.get('all') and request.args.get('all') == 'true':
+            return json.dumps(Storage.search(request.args.get('content'), True))
+        return json.dumps(Storage.search(request.args.get('content')))
+    raise BadRequest("Missing params")
 
 
 @app.route("/join_network/", methods=["POST"])
